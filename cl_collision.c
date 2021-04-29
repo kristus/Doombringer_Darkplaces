@@ -209,7 +209,11 @@ trace_t CL_TracePoint(const vec3_t start, int type, prvm_edict_t *passedict, int
 	int i, bodysupercontents;
 	int passedictprog;
 	prvm_edict_t *traceowner, *touch;
+	entity_render_t *ent;
+	entity_state_t *ent_fields;
 	trace_t trace;
+	vec3_t origin, entmins, entmaxs;
+    matrix4x4_t entmatrix, entinversematrix;
 	// temporary storage because prvm_vec_t may need conversion
 	vec3_t touchmins, touchmaxs;
 	// bounding box of entire move area
@@ -282,17 +286,17 @@ trace_t CL_TracePoint(const vec3_t start, int type, prvm_edict_t *passedict, int
 	traceowner = passedict ? PRVM_PROG_TO_EDICT(PRVM_clientedictedict(passedict, owner)) : NULL;
 
 	clipgroup = passedict ? (int)PRVM_clientedictfloat(passedict, clipgroup) : 0;
-	
+
 	// collide against network entities
 	if (hitnetworkbrushmodels)
 	{
 		for (i = 0;i < cl.num_brushmodel_entities;i++)
 		{
-			entity_state_t *ent_fields = &cl.entities[cl.brushmodel_entities[i]].state_current;
+			ent_fields = &cl.entities[cl.brushmodel_entities[i]].state_current;
 			if (ent_fields->solid == SOLID_NOT)
 				continue;
-			
-			entity_render_t *ent = &cl.entities[cl.brushmodel_entities[i]].render;
+
+			ent = &cl.entities[cl.brushmodel_entities[i]].render;
 			if (!BoxesOverlap(clipboxmins, clipboxmaxs, ent->mins, ent->maxs))
 				continue;
 			Collision_ClipPointToGenericEntity(&trace, ent->model, ent->frameblend, ent->skeleton, vec3_origin, vec3_origin, 0, &ent->matrix, &ent->inversematrix, start, hitsupercontentsmask, skipsupercontentsmask, skipmaterialflagsmask);
@@ -300,18 +304,13 @@ trace_t CL_TracePoint(const vec3_t start, int type, prvm_edict_t *passedict, int
 				*hitnetworkentity = cl.brushmodel_entities[i];
 			Collision_CombineTraces(&cliptrace, &trace, NULL, true);
 		}
-		
-		
-		
-		
-		vec3_t origin, entmins, entmaxs;
-		matrix4x4_t entmatrix, entinversematrix;
-		
+
+
 		for (i = cl.maxclients + 1;i < cl.num_entities;i++)
 		{
-			entity_render_t *ent = &cl.entities[i].render;
-			entity_state_t *ent_fields = &cl.entities[i].state_current;
-			
+			ent = &cl.entities[i].render;
+			ent_fields = &cl.entities[i].state_current;
+
 			// don't hit players that don't exist
 			if (!cl.entities_active[i])
 				continue;
@@ -335,8 +334,6 @@ trace_t CL_TracePoint(const vec3_t start, int type, prvm_edict_t *passedict, int
 	// collide against player entities
 	if (hitnetworkplayers)
 	{
-		vec3_t origin, entmins, entmaxs;
-		matrix4x4_t entmatrix, entinversematrix;
 
 		if(IS_OLDNEXUIZ_DERIVED(gamemode))
 		{
@@ -347,13 +344,13 @@ trace_t CL_TracePoint(const vec3_t start, int type, prvm_edict_t *passedict, int
 
 		for (i = 1;i <= cl.maxclients;i++)
 		{
-			entity_render_t *ent = &cl.entities[i].render;
-			entity_state_t *ent_fields = &cl.entities[i].state_current;
-			
+			ent = &cl.entities[i].render;
+			ent_fields = &cl.entities[i].state_current;
+
 			// don't hit ourselves
 			if (i == cl.playerentity)
 				continue;
-			
+
 			// don't hit players that don't exist
 			if (!cl.entities_active[i])
 				continue;
@@ -468,6 +465,10 @@ trace_t CL_TraceLine(const vec3_t start, const vec3_t end, int type, prvm_edict_
 	int passedictprog;
 	prvm_edict_t *traceowner, *touch;
 	trace_t trace;
+    entity_render_t *ent;
+    entity_state_t *ent_fields;
+    vec3_t origin, entmins, entmaxs;
+    matrix4x4_t entmatrix, entinversematrix;
 	// temporary storage because prvm_vec_t may need conversion
 	vec3_t touchmins, touchmaxs;
 	// bounding box of entire move area
@@ -549,11 +550,11 @@ trace_t CL_TraceLine(const vec3_t start, const vec3_t end, int type, prvm_edict_
 	{
 		for (i = 0;i < cl.num_brushmodel_entities;i++)
 		{
-			entity_state_t *ent_fields = &cl.entities[cl.brushmodel_entities[i]].state_current;
+			ent_fields = &cl.entities[cl.brushmodel_entities[i]].state_current;
 			if (ent_fields->solid == SOLID_NOT)
 				continue;
-			
-			entity_render_t *ent = &cl.entities[cl.brushmodel_entities[i]].render;
+
+			ent = &cl.entities[cl.brushmodel_entities[i]].render;
 			if (!BoxesOverlap(clipboxmins, clipboxmaxs, ent->mins, ent->maxs))
 				continue;
 			Collision_ClipLineToGenericEntity(&trace, ent->model, ent->frameblend, ent->skeleton, vec3_origin, vec3_origin, 0, &ent->matrix, &ent->inversematrix, start, end, hitsupercontentsmask, skipsupercontentsmask, skipmaterialflagsmask, extend, hitsurfaces);
@@ -561,19 +562,12 @@ trace_t CL_TraceLine(const vec3_t start, const vec3_t end, int type, prvm_edict_
 				*hitnetworkentity = cl.brushmodel_entities[i];
 			Collision_CombineTraces(&cliptrace, &trace, NULL, true);
 		}
-		
-		
-		
-		
-		
-		vec3_t origin, entmins, entmaxs;
-		matrix4x4_t entmatrix, entinversematrix;
-		
+
 		for (i = cl.maxclients + 1;i < cl.num_entities;i++)
 		{
-			entity_render_t *ent = &cl.entities[i].render;
-			entity_state_t *ent_fields = &cl.entities[i].state_current;
-			
+			ent = &cl.entities[i].render;
+			ent_fields = &cl.entities[i].state_current;
+
 			// don't hit players that don't exist
 			if (!cl.entities_active[i])
 				continue;
@@ -597,8 +591,6 @@ trace_t CL_TraceLine(const vec3_t start, const vec3_t end, int type, prvm_edict_
 	// collide against player entities
 	if (hitnetworkplayers)
 	{
-		vec3_t origin, entmins, entmaxs;
-		matrix4x4_t entmatrix, entinversematrix;
 
 		if(IS_OLDNEXUIZ_DERIVED(gamemode))
 		{
@@ -609,8 +601,8 @@ trace_t CL_TraceLine(const vec3_t start, const vec3_t end, int type, prvm_edict_
 
 		for (i = 1;i <= cl.maxclients;i++)
 		{
-			entity_render_t *ent = &cl.entities[i].render;
-			entity_state_t *ent_fields = &cl.entities[i].state_current;
+			ent = &cl.entities[i].render;
+			ent_fields = &cl.entities[i].state_current;
 
 			// don't hit ourselves
 			if (i == cl.playerentity)
@@ -732,6 +724,10 @@ trace_t CL_TraceBox(const vec3_t start, const vec3_t mins, const vec3_t maxs, co
 	qbool pointtrace;
 	prvm_edict_t *traceowner, *touch;
 	trace_t trace;
+    entity_render_t *ent;
+    entity_state_t *ent_fields;
+    vec3_t origin, entmins, entmaxs;
+    matrix4x4_t entmatrix, entinversematrix;
 	// temporary storage because prvm_vec_t may need conversion
 	vec3_t touchmins, touchmaxs;
 	// bounding box of entire move area
@@ -838,11 +834,11 @@ trace_t CL_TraceBox(const vec3_t start, const vec3_t mins, const vec3_t maxs, co
 	{
 		for (i = 0;i < cl.num_brushmodel_entities;i++)
 		{
-			entity_state_t *ent_fields = &cl.entities[cl.brushmodel_entities[i]].state_current;
+			ent_fields = &cl.entities[cl.brushmodel_entities[i]].state_current;
 			if (ent_fields->solid == SOLID_NOT)
 				continue;
-			
-			entity_render_t *ent = &cl.entities[cl.brushmodel_entities[i]].render;
+
+			ent = &cl.entities[cl.brushmodel_entities[i]].render;
 			if (!BoxesOverlap(clipboxmins, clipboxmaxs, ent->mins, ent->maxs))
 				continue;
 			Collision_ClipToGenericEntity(&trace, ent->model, ent->frameblend, ent->skeleton, vec3_origin, vec3_origin, 0, &ent->matrix, &ent->inversematrix, start, mins, maxs, end, hitsupercontentsmask, skipsupercontentsmask, skipmaterialflagsmask, extend);
@@ -850,16 +846,12 @@ trace_t CL_TraceBox(const vec3_t start, const vec3_t mins, const vec3_t maxs, co
 				*hitnetworkentity = cl.brushmodel_entities[i];
 			Collision_CombineTraces(&cliptrace, &trace, NULL, true);
 		}
-		
-		
-		vec3_t origin, entmins, entmaxs;
-		matrix4x4_t entmatrix, entinversematrix;
-		
+
 		for (i = cl.maxclients + 1;i < cl.num_entities;i++)
 		{
-			entity_render_t *ent = &cl.entities[i].render;
-			entity_state_t *ent_fields = &cl.entities[i].state_current;
-			
+			ent = &cl.entities[i].render;
+			ent_fields = &cl.entities[i].state_current;
+
 			// don't hit players that don't exist
 			if (!cl.entities_active[i])
 				continue;
@@ -873,12 +865,12 @@ trace_t CL_TraceBox(const vec3_t start, const vec3_t mins, const vec3_t maxs, co
 				continue;
 			Matrix4x4_CreateTranslate(&entmatrix, origin[0], origin[1], origin[2]);
 			Matrix4x4_CreateTranslate(&entinversematrix, -origin[0], -origin[1], -origin[2]);
-			
+
 			//if (ent_fields->solid == SOLID_BSP)
 			//	Collision_ClipToGenericEntity(&trace, ent->model, ent->frameblend, ent->skeleton, vec3_origin, vec3_origin, 0, &entmatrix, &entinversematrix, start, mins, maxs, end, hitsupercontentsmask, skipsupercontentsmask, skipmaterialflagsmask, extend);
 			//else
 				Collision_ClipToGenericEntity(&trace, NULL, NULL, NULL, ent_fields->mins, ent_fields->maxs, SUPERCONTENTS_BODY, &entmatrix, &entinversematrix, start, mins, maxs, end, hitsupercontentsmask, skipsupercontentsmask, skipmaterialflagsmask, extend);
-			
+
 			if (cliptrace.fraction > trace.fraction && hitnetworkentity)
 				*hitnetworkentity = i;
 			Collision_CombineTraces(&cliptrace, &trace, NULL, false);
@@ -888,8 +880,6 @@ trace_t CL_TraceBox(const vec3_t start, const vec3_t mins, const vec3_t maxs, co
 	// collide against player entities
 	if (hitnetworkplayers)
 	{
-		vec3_t origin, entmins, entmaxs;
-		matrix4x4_t entmatrix, entinversematrix;
 
 		if(IS_OLDNEXUIZ_DERIVED(gamemode))
 		{
@@ -900,8 +890,8 @@ trace_t CL_TraceBox(const vec3_t start, const vec3_t mins, const vec3_t maxs, co
 
 		for (i = 1;i <= cl.maxclients;i++)
 		{
-			entity_render_t *ent = &cl.entities[i].render;
-			entity_state_t *ent_fields = &cl.entities[i].state_current;
+			ent = &cl.entities[i].render;
+			ent_fields = &cl.entities[i].state_current;
 
 			// don't hit ourselves
 			if (i == cl.playerentity)
