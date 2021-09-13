@@ -2832,9 +2832,55 @@ static void SV_Physics_Step (prvm_edict_t *ent)
 
 //============================================================================
 
+// Reki:
+// Code adapted from FTEQW r5786, thanks spike :)
+static void SV_Physics_MoveChain(prvm_edict_t *ent, prvm_edict_t *movechain_ent, float *initial_origin, float *initial_angle)
+{
+	prvm_prog_t *prog = SVVM_prog;
+
+	qbool orgunchanged;
+	vec3_t moveorg, moveang;
+	VectorSubtract(PRVM_serveredictvector(ent, origin), initial_origin, moveorg);
+	VectorSubtract(PRVM_serveredictvector(ent, angles), initial_angle, moveang);
+	orgunchanged = !DotProduct(moveorg, moveorg);
+	if (!orgunchanged || DotProduct(moveang, moveang))
+	{
+		int i;
+		for (i = 16; i && movechain_ent != prog->edicts && !movechain_ent->priv.required->free; i--, movechain_ent = PRVM_PROG_TO_EDICT(PRVM_serveredictedict(movechain_ent, movechain)))
+		{
+			if ((int)PRVM_serveredictfloat(movechain_ent, flags) & FL_MOVECHAIN_ANGLE)
+			{
+				VectorAdd(PRVM_serveredictvector(movechain_ent, angles), moveang, PRVM_serveredictvector(movechain_ent, angles));	//FIXME: axial only
+			}
+
+			if (!orgunchanged)
+			{
+				VectorAdd(PRVM_serveredictvector(movechain_ent, origin), moveorg, PRVM_serveredictvector(movechain_ent, origin));
+				World_LinkEdict(&sv.world, movechain_ent, PRVM_serveredictvector(movechain_ent, mins), PRVM_serveredictvector(movechain_ent, maxs));
+			}
+
+			// Reki:
+			// in hexen2 this is only called for origin changes, that seems like a bug to me so I'm changing it.
+			if (PRVM_serveredictfunction(movechain_ent, chainmoved))
+			{
+				PRVM_serverglobaledict(self) = PRVM_EDICT_TO_PROG(movechain_ent);
+				PRVM_serverglobaledict(other) = PRVM_EDICT_TO_PROG(ent);
+
+				prog->ExecuteProgram(prog, PRVM_serveredictfunction(movechain_ent, chainmoved), "QC chainmoved function is missing");
+			}
+		}
+	}
+}
+
+//============================================================================
+
 static void SV_Physics_Entity (prvm_edict_t *ent)
 {
 	prvm_prog_t *prog = SVVM_prog;
+	prvm_edict_t *movechain_ent;
+	vec3_t initial_origin;
+	vec3_t initial_angle;
+
 	// don't run think/move on newly spawned projectiles as it messes up
 	// movement interpolation and rocket trails, and is inconsistent with
 	// respect to entities spawned in the same frame
@@ -2845,6 +2891,14 @@ static void SV_Physics_Entity (prvm_edict_t *ent)
 	ent->priv.server->move = true;
 	if (!runmove && sv_gameplayfix_delayprojectiles.integer > 0)
 		return;
+	
+	movechain_ent = PRVM_PROG_TO_EDICT(PRVM_serveredictedict(ent, movechain));
+	if (movechain_ent != prog->edicts)
+	{
+		VectorCopy(PRVM_serveredictvector(ent, origin), initial_origin);
+		VectorCopy(PRVM_serveredictvector(ent, angles), initial_angle);
+	}
+
 	switch ((int) PRVM_serveredictfloat(ent, movetype))
 	{
 	case MOVETYPE_PUSH:
@@ -2907,6 +2961,10 @@ static void SV_Physics_Entity (prvm_edict_t *ent)
 		Con_Printf ("SV_Physics: bad movetype %i\n", (int)PRVM_serveredictfloat(ent, movetype));
 		break;
 	}
+
+
+	if (movechain_ent != prog->edicts && !ent->priv.required->free)
+		SV_Physics_MoveChain(ent, movechain_ent, initial_origin, initial_angle);
 }
 
 static void SV_Physics_ClientEntity_NoThink (prvm_edict_t *ent)
