@@ -1405,6 +1405,7 @@ MESSAGE WRITING
 #define	MSG_ALL			2		// reliable to all
 #define	MSG_INIT		3		// write to the init string
 #define	MSG_ENTITY		5
+#define	MSG_ONE_U		10
 
 static sizebuf_t *WriteDest(prvm_prog_t *prog)
 {
@@ -1417,6 +1418,11 @@ static sizebuf_t *WriteDest(prvm_prog_t *prog)
 	{
 	case MSG_BROADCAST:
 		return &sv.datagram;
+
+	case MSG_ONE_U:
+		ent = PRVM_PROG_TO_EDICT(PRVM_serverglobaledict(msg_entity));
+		entnum = PRVM_NUM_FOR_EDICT(ent);
+		return &svs.clients[entnum - 1].unreliablemsg;
 
 	case MSG_ONE:
 		ent = PRVM_PROG_TO_EDICT(PRVM_serverglobaledict(msg_entity));
