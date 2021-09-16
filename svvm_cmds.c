@@ -230,6 +230,7 @@ const char *vm_sv_extensions[] = {
 "DP_RM_CLIPGROUP",
 "DP_QC_FS_SEARCH_PACKFILE",
 "EXT_WRATH",
+"EXT_DB_MOVECHAIN",
 NULL
 //"EXT_CSQC" // not ready yet
 };
@@ -246,6 +247,7 @@ setorigin (entity, origin)
 static void VM_SV_setorigin(prvm_prog_t *prog)
 {
 	prvm_edict_t	*e;
+	vec3_t initial_origin;
 
 	VM_SAFEPARMCOUNT(2, VM_SV_setorigin);
 
@@ -260,10 +262,24 @@ static void VM_SV_setorigin(prvm_prog_t *prog)
 		VM_Warning(prog, "setorigin: can not modify free entity\n");
 		return;
 	}
+	
+	VectorCopy(PRVM_serveredictvector(e, origin), initial_origin);
 	VectorCopy(PRVM_G_VECTOR(OFS_PARM1), PRVM_serveredictvector(e, origin));
 	if(e->priv.required->mark == PRVM_EDICT_MARK_WAIT_FOR_SETORIGIN)
 		e->priv.required->mark = PRVM_EDICT_MARK_SETORIGIN_CAUGHT;
 	SV_LinkEdict(e);
+
+
+	// Reki: Attached ents should move with us
+	if (PRVM_serveredictfloat(e, movechain))
+	{
+		movechain_linkedelement_t *movechain_list = prog->movechain_elements[(int)PRVM_serveredictfloat(e, movechain)];
+		if (movechain_list != NULL)
+		{
+			SV_Physics_MoveChain(e, movechain_list, initial_origin, PRVM_serveredictvector(e, angles));
+		}
+	}
+	//
 }
 
 // TODO: rotate param isnt used.. could be a bug. please check this and remove it if possible [1/10/2008 Black]
@@ -3216,6 +3232,151 @@ static void VM_SV_touchtriggers(prvm_prog_t *prog)
 }
 
 
+// #750 void(entity e, entity attachto) movechain_attach = #750
+static void VM_SV_movechain_attach(prvm_prog_t *prog)
+{
+	prvm_edict_t *e = PRVM_G_EDICT(OFS_PARM0);
+	prvm_edict_t *attachto = PRVM_G_EDICT(OFS_PARM1);
+
+	// do a safety check to make sure we aren't creating an infinite loop, damn stupid coders/mappers
+	movechain_linkedelement_t *my_list = prog->movechain_elements[(int)PRVM_serveredictfloat(e, movechain)];
+	while (my_list)
+	{
+		// iterate through the list and check for the one we're attaching to
+		if (my_list->ent == attachto)
+		{
+			prog->error_cmd("Infinite movechain loop attempted, clean up your attach calls");
+			return;
+		}
+
+		my_list = my_list->next;
+	}
+
+
+	// alloc a chain link
+	movechain_linkedelement_t *mchain = (movechain_linkedelement_t *)Mem_Alloc(prog->progs_mempool, sizeof(movechain_linkedelement_t));
+
+	// find a free one in the array
+	int i;
+	for (i = 1; i < MAX_EDICTS; i++)
+	{
+		if (prog->movechain_elements[i] == NULL)
+		{
+			mchain->index = i;
+			prog->movechain_elements[i] = mchain;
+			break;
+		}
+	}
+	
+	// find the link from our attach object
+	movechain_linkedelement_t *attachto_list = prog->movechain_elements[(int)PRVM_serveredictfloat(attachto, movechain)];
+
+	mchain->ent = e;
+	mchain->next = attachto_list;
+	PRVM_serveredictfloat(attachto, movechain) = (float)i;
+	PRVM_serveredictedict(e, aiment) = PRVM_EDICT_TO_PROG(attachto);
+}
+
+// #751 void(entity owner, entity ent) movechain_detach = #751
+static void VM_SV_movechain_detach(prvm_prog_t *prog)
+{
+	prvm_edict_t *owner = PRVM_G_EDICT(OFS_PARM0);
+	prvm_edict_t *e = PRVM_G_EDICT(OFS_PARM1);
+
+	movechain_linkedelement_t *hold = NULL;
+	movechain_linkedelement_t *list = prog->movechain_elements[(int)PRVM_serveredictfloat(owner, movechain)];
+
+	if (list == NULL)
+		return;
+
+	// special case for if the first entry is our target
+	if (list->ent == e)
+	{
+		if (list->next == NULL)
+			PRVM_serveredictfloat(owner, movechain) = (float)0;
+		else
+			PRVM_serveredictfloat(owner, movechain) = (float)list->next->index;
+
+		prog->movechain_elements[list->index] = NULL;
+		Mem_Free(list);
+		return;
+	}
+	else
+	{
+		hold = list;
+		list = list->next;
+	}
+
+	// iterate through until we find our target
+	while (list != NULL)
+	{
+		if (list->ent == e)
+		{
+			hold->next = list->next;
+			prog->movechain_elements[list->index] = NULL;
+			Mem_Free(list);
+		}
+
+		hold = list;
+		list = list->next;
+	}
+}
+
+// #752 void(entity owner) movechain_findchain = #752
+static void VM_SV_movechain_findchain(prvm_prog_t *prog)
+{
+	prvm_edict_t *owner = PRVM_G_EDICT(OFS_PARM0);
+	movechain_linkedelement_t *list = prog->movechain_elements[(int)PRVM_serveredictfloat(owner, movechain)];
+
+	if (list == NULL)
+	{
+		PRVM_serveredictedict(owner, chain) = 0;
+		return;
+	}
+	else
+	{
+		PRVM_serveredictedict(owner, chain) = PRVM_EDICT_TO_PROG(list->ent);
+	}
+
+	while (list != NULL)
+	{
+		if (list->next == NULL)
+			PRVM_serveredictedict(list->ent, chain) = 0;
+		else
+			PRVM_serveredictedict(list->ent, chain) = PRVM_EDICT_TO_PROG(list->next->ent);
+		
+
+		list = list->next;
+	}
+}
+
+
+// #753 void(entity owner) movechain_destroy = #753
+void movechain_destroy(prvm_prog_t *prog, movechain_linkedelement_t *list)
+{
+	if (list == NULL)
+		return;
+
+	while (list != NULL)
+	{
+		movechain_linkedelement_t *hold = list->next;
+		prog->movechain_elements[list->index] = NULL;
+		Mem_Free(list);
+
+		list = hold;
+	}
+}
+
+static void VM_SV_movechain_destroy(prvm_prog_t *prog)
+{
+	prvm_edict_t *owner = PRVM_G_EDICT(OFS_PARM0);
+	movechain_linkedelement_t *list = prog->movechain_elements[(int)PRVM_serveredictfloat(owner, movechain)];
+	movechain_destroy(prog, list);
+
+	PRVM_serveredictfloat(owner, movechain) = 0;
+}
+
+
 prvm_builtin_t vm_sv_builtins[] = {
 NULL,							// #0 NULL function (not callable) (QUAKE)
 VM_makevectors,					// #1 void(vector ang) makevectors (QUAKE)
@@ -3871,12 +4032,13 @@ NULL,							// #646
 NULL,							// #647
 NULL,							// #648
 NULL,							// #649
-// WRATH range (#650-#???)
+// WRATH range (#650-#699)
 VM_fcopy,						// #650 float(string fnfrom, string fnto) fcopy (EXT_WRATH)
 VM_frename,						// #651 float (string fnold, string fnnew) frename (EXT_WRATH)
 VM_fremove,						// #652 float (string fname) fremove (EXT_WRATH)
 VM_fexists,						// #653 float (string fname) fexists (EXT_WRATH)
 VM_rmtree,						// #654 float (string path) rmtree (EXT_WRATH)
+NULL,							// #655
 NULL,							// #656
 NULL,							// #657
 NULL,							// #658
@@ -3896,7 +4058,133 @@ NULL,							// #671
 NULL,							// #672
 NULL,							// #673
 NULL,							// #674
-NULL							// #675
+NULL,							// #675
+NULL,							// #676
+NULL,							// #677
+NULL,							// #678
+NULL,							// #679
+NULL,							// #680
+NULL,							// #681
+NULL,							// #682
+NULL,							// #683
+NULL,							// #684
+NULL,							// #685
+NULL,							// #686
+NULL,							// #687
+NULL,							// #688
+NULL,							// #689
+NULL,							// #690
+NULL,							// #691
+NULL,							// #692
+NULL,							// #693
+NULL,							// #694
+NULL,							// #695
+NULL,							// #696
+NULL,							// #697
+NULL,							// #698
+NULL,							// #699
+// NODEGRAPH range (#700-#750)
+NULL,							// #700
+NULL,							// #701
+NULL,							// #702
+NULL,							// #703
+NULL,							// #704
+NULL,							// #705
+NULL,							// #706
+NULL,							// #707
+NULL,							// #708
+NULL,							// #709
+NULL,							// #710
+NULL,							// #711
+NULL,							// #712
+NULL,							// #713
+NULL,							// #714
+NULL,							// #715
+NULL,							// #716
+NULL,							// #717
+NULL,							// #718
+NULL,							// #719
+NULL,							// #720
+NULL,							// #721
+NULL,							// #722
+NULL,							// #723
+NULL,							// #724
+NULL,							// #725
+NULL,							// #726
+NULL,							// #727
+NULL,							// #728
+NULL,							// #729
+NULL,							// #730
+NULL,							// #731
+NULL,							// #732
+NULL,							// #733
+NULL,							// #734
+NULL,							// #735
+NULL,							// #736
+NULL,							// #737
+NULL,							// #738
+NULL,							// #739
+NULL,							// #740
+NULL,							// #741
+NULL,							// #742
+NULL,							// #743
+NULL,							// #744
+NULL,							// #745
+NULL,							// #746
+NULL,							// #747
+NULL,							// #748
+NULL,							// #749
+// DOOMBRINGER range (#750-#799)
+VM_SV_movechain_attach,			// #750
+VM_SV_movechain_detach,			// #751
+VM_SV_movechain_findchain,		// #752
+VM_SV_movechain_destroy,		// #753
+NULL,							// #754
+NULL,							// #755
+NULL,							// #756
+NULL,							// #757
+NULL,							// #758
+NULL,							// #759
+NULL,							// #760
+NULL,							// #761
+NULL,							// #762
+NULL,							// #763
+NULL,							// #764
+NULL,							// #765
+NULL,							// #766
+NULL,							// #767
+NULL,							// #768
+NULL,							// #769
+NULL,							// #770
+NULL,							// #771
+NULL,							// #772
+NULL,							// #773
+NULL,							// #774
+NULL,							// #775
+NULL,							// #776
+NULL,							// #777
+NULL,							// #778
+NULL,							// #779
+NULL,							// #780
+NULL,							// #781
+NULL,							// #782
+NULL,							// #783
+NULL,							// #784
+NULL,							// #785
+NULL,							// #786
+NULL,							// #787
+NULL,							// #788
+NULL,							// #789
+NULL,							// #790
+NULL,							// #791
+NULL,							// #792
+NULL,							// #793
+NULL,							// #794
+NULL,							// #795
+NULL,							// #796
+NULL,							// #797
+NULL,							// #798
+NULL							// #799
 };
 
 const int vm_sv_numbuiltins = sizeof(vm_sv_builtins) / sizeof(prvm_builtin_t);

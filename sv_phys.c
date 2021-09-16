@@ -2834,8 +2834,9 @@ static void SV_Physics_Step (prvm_edict_t *ent)
 
 // Reki:
 // Code adapted from FTEQW r5786, thanks spike :)
-static void SV_Physics_MoveChain(prvm_edict_t *ent, prvm_edict_t *movechain_ent, float *initial_origin, float *initial_angle)
+void SV_Physics_MoveChain(prvm_edict_t *ent, movechain_linkedelement_t *movechain_list, float *initial_origin, float *initial_angle)
 {
+
 	prvm_prog_t *prog = SVVM_prog;
 
 	qbool orgunchanged;
@@ -2846,28 +2847,53 @@ static void SV_Physics_MoveChain(prvm_edict_t *ent, prvm_edict_t *movechain_ent,
 	if (!orgunchanged || DotProduct(moveang, moveang))
 	{
 		int i;
-		for (i = 16; i && movechain_ent != prog->edicts && !movechain_ent->priv.required->free; i--, movechain_ent = PRVM_PROG_TO_EDICT(PRVM_serveredictedict(movechain_ent, movechain)))
+		for (i = 16; i && movechain_list != NULL && movechain_list->ent != prog->edicts && !movechain_list->ent->priv.required->free; i--, movechain_list = movechain_list->next)
 		{
-			if ((int)PRVM_serveredictfloat(movechain_ent, flags) & FL_MOVECHAIN_ANGLE)
+			movechain_linkedelement_t *sub_movechain_list;
+			vec3_t sub_initial_origin;
+			vec3_t sub_initial_angles;
+
+			sub_movechain_list = prog->movechain_elements[(int)PRVM_serveredictfloat(movechain_list->ent, movechain)];
+			if (sub_movechain_list != NULL)
 			{
-				VectorAdd(PRVM_serveredictvector(movechain_ent, angles), moveang, PRVM_serveredictvector(movechain_ent, angles));	//FIXME: axial only
+				VectorCopy(PRVM_serveredictvector(movechain_list->ent, origin), sub_initial_origin);
+				VectorCopy(PRVM_serveredictvector(movechain_list->ent, angles), sub_initial_angles);
+			}
+
+			if ((int)PRVM_serveredictfloat(movechain_list->ent, flags) & FL_MOVECHAIN_ANGLE)
+			{
+				VectorAdd(PRVM_serveredictvector(movechain_list->ent, angles), moveang, PRVM_serveredictvector(movechain_list->ent, angles));	//FIXME: axial only
 			}
 
 			if (!orgunchanged)
 			{
-				VectorAdd(PRVM_serveredictvector(movechain_ent, origin), moveorg, PRVM_serveredictvector(movechain_ent, origin));
-				World_LinkEdict(&sv.world, movechain_ent, PRVM_serveredictvector(movechain_ent, mins), PRVM_serveredictvector(movechain_ent, maxs));
+				VectorAdd(PRVM_serveredictvector(movechain_list->ent, origin), moveorg, PRVM_serveredictvector(movechain_list->ent, origin));
+				SV_LinkEdict(movechain_list->ent);
 			}
-
+			
 			// Reki:
 			// in hexen2 this is only called for origin changes, that seems like a bug to me so I'm changing it.
-			if (PRVM_serveredictfunction(movechain_ent, chainmoved))
+			if (PRVM_serveredictfunction(movechain_list->ent, chainmoved))
 			{
-				PRVM_serverglobaledict(self) = PRVM_EDICT_TO_PROG(movechain_ent);
+				int oself = PRVM_serverglobaledict(self);
+				int oother = PRVM_serverglobaledict(other);
+
+				PRVM_serverglobaledict(self) = PRVM_EDICT_TO_PROG(movechain_list->ent);
 				PRVM_serverglobaledict(other) = PRVM_EDICT_TO_PROG(ent);
 
-				prog->ExecuteProgram(prog, PRVM_serveredictfunction(movechain_ent, chainmoved), "QC chainmoved function is missing");
+				VectorCopy(initial_origin, PRVM_G_VECTOR(OFS_PARM0));
+				VectorCopy(PRVM_serveredictvector(ent, origin), PRVM_G_VECTOR(OFS_PARM1));
+				VectorCopy(initial_angle, PRVM_G_VECTOR(OFS_PARM2));
+				VectorCopy(PRVM_serveredictvector(ent, angles), PRVM_G_VECTOR(OFS_PARM3));
+				prog->ExecuteProgram(prog, PRVM_serveredictfunction(movechain_list->ent, chainmoved), "QC chainmoved function is missing");
+
+				PRVM_serverglobaledict(self) = oself;
+				PRVM_serverglobaledict(other) = oother;
 			}
+
+			// recursively call this function for all ents attached to the one we are moving
+			if (sub_movechain_list != NULL)
+				SV_Physics_MoveChain(movechain_list->ent, sub_movechain_list, sub_initial_origin, sub_initial_angles);
 		}
 	}
 }
@@ -2877,7 +2903,7 @@ static void SV_Physics_MoveChain(prvm_edict_t *ent, prvm_edict_t *movechain_ent,
 static void SV_Physics_Entity (prvm_edict_t *ent)
 {
 	prvm_prog_t *prog = SVVM_prog;
-	prvm_edict_t *movechain_ent;
+	movechain_linkedelement_t *movechain_list;
 	vec3_t initial_origin;
 	vec3_t initial_angle;
 
@@ -2892,12 +2918,14 @@ static void SV_Physics_Entity (prvm_edict_t *ent)
 	if (!runmove && sv_gameplayfix_delayprojectiles.integer > 0)
 		return;
 	
-	movechain_ent = PRVM_PROG_TO_EDICT(PRVM_serveredictedict(ent, movechain));
-	if (movechain_ent != prog->edicts)
+
+	movechain_list = prog->movechain_elements[(int)PRVM_serveredictfloat(ent, movechain)];
+	if (movechain_list != NULL)
 	{
 		VectorCopy(PRVM_serveredictvector(ent, origin), initial_origin);
 		VectorCopy(PRVM_serveredictvector(ent, angles), initial_angle);
 	}
+
 
 	switch ((int) PRVM_serveredictfloat(ent, movetype))
 	{
@@ -2963,8 +2991,8 @@ static void SV_Physics_Entity (prvm_edict_t *ent)
 	}
 
 
-	if (movechain_ent != prog->edicts && !ent->priv.required->free)
-		SV_Physics_MoveChain(ent, movechain_ent, initial_origin, initial_angle);
+	if (movechain_list != NULL && !ent->priv.required->free)
+		SV_Physics_MoveChain(ent, movechain_list, initial_origin, initial_angle);
 }
 
 static void SV_Physics_ClientEntity_NoThink (prvm_edict_t *ent)

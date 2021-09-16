@@ -87,6 +87,7 @@ typedef struct prvm_edict_private_s
 	const char *allocation_origin;
 } prvm_edict_private_t;
 
+
 typedef struct prvm_edict_s
 {
 	// engine-private fields (stored in dynamically resized array)
@@ -631,6 +632,7 @@ typedef struct prvm_prog_s
 	struct fssearch_s			*opensearches[PRVM_MAX_OPENSEARCHES];
 	const char *         opensearches_origin[PRVM_MAX_OPENSEARCHES];
 	struct skeleton_s	*skeletons[MAX_EDICTS];
+	struct movechain_linkedelement_s *movechain_elements[MAX_EDICTS];
 	struct cmd_state_s	*console_cmd; // points to the relevant console command interpreter for this vm (cmd_client or &cmd_server), also used to access cvars
 
 	// buffer for storing all tempstrings created during one invocation of ExecuteProgram

@@ -1016,7 +1016,18 @@ void VM_remove(prvm_prog_t *prog)
 			VM_Warning(prog, "VM_remove: tried to remove an already freed entity!\n" );
 	}
 	else
-		PRVM_ED_Free (prog, ed);
+	{
+		if (prog == SVVM_prog)
+		{
+			if (PRVM_serveredictfloat(ed, movechain))
+			{
+				movechain_linkedelement_t *list = prog->movechain_elements[(int)PRVM_serveredictfloat(ed, movechain)];
+				movechain_destroy(prog, list);
+			}
+		}
+
+		PRVM_ED_Free(prog, ed);
+	}
 }
 
 /*
