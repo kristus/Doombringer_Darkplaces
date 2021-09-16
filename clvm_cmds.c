@@ -5318,7 +5318,7 @@ VM_CL_ReadCoord,				// #364 float() readcoord (EXT_CSQC)
 VM_CL_ReadAngle,				// #365 float() readangle (EXT_CSQC)
 VM_CL_ReadString,				// #366 string() readstring (EXT_CSQC)
 VM_CL_ReadFloat,				// #367 float() readfloat (EXT_CSQC)
-NULL,						// #368
+NULL,							// #368
 NULL,							// #369
 NULL,							// #370
 NULL,							// #371
