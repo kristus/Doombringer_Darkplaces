@@ -3062,6 +3062,7 @@ void SV_Physics_ClientMove(void)
 	// call standard client pre-think, with frametime = 0
 	PRVM_serverglobalfloat(time) = sv.time;
 	PRVM_serverglobalfloat(frametime) = 0;
+	PRVM_serverglobalfloat(servercommandframe) = host_client->movesequence;
 	PRVM_serverglobaledict(self) = PRVM_EDICT_TO_PROG(ent);
 	prog->ExecuteProgram(prog, PRVM_serverfunction(PlayerPreThink), "QC function PlayerPreThink is missing");
 	PRVM_serverglobalfloat(frametime) = sv.frametime;
@@ -3110,6 +3111,7 @@ static void SV_Physics_ClientEntity_PreThink(prvm_edict_t *ent)
 
 	// call standard client pre-think
 	PRVM_serverglobalfloat(time) = sv.time;
+	PRVM_serverglobalfloat(servercommandframe) = host_client->movesequence;
 	PRVM_serverglobaledict(self) = PRVM_EDICT_TO_PROG(ent);
 	prog->ExecuteProgram(prog, PRVM_serverfunction(PlayerPreThink), "QC function PlayerPreThink is missing");
 
