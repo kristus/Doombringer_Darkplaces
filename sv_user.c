@@ -655,6 +655,12 @@ static void SV_ReadClientMove (void)
 	if (sv.protocol != PROTOCOL_QUAKE && sv.protocol != PROTOCOL_QUAKEDP && sv.protocol != PROTOCOL_NEHAHRAMOVIE && sv.protocol != PROTOCOL_NEHAHRABJP && sv.protocol != PROTOCOL_NEHAHRABJP2 && sv.protocol != PROTOCOL_NEHAHRABJP3 && sv.protocol != PROTOCOL_DARKPLACES1 && sv.protocol != PROTOCOL_DARKPLACES2 && sv.protocol != PROTOCOL_DARKPLACES3 && sv.protocol != PROTOCOL_DARKPLACES4 && sv.protocol != PROTOCOL_DARKPLACES5 && sv.protocol != PROTOCOL_DARKPLACES6)
 		move->sequence = MSG_ReadLong(&sv_message);
 	move->time = move->clienttime = MSG_ReadFloat(&sv_message);
+
+	if (sv.protocol == PROTOCOL_DOOMBRINGER2)
+	{
+		move->frametime = MSG_ReadFloat(&sv_message);
+	}
+
 	if (sv_message.badread) Con_Printf("SV_ReadClientMessage: badread at %s:%i\n", __FILE__, __LINE__);
 	move->receivetime = (float)sv.time;
 
@@ -663,7 +669,9 @@ static void SV_ReadClientMove (void)
 #endif
 	// limit reported time to current time
 	// (incase the client is trying to cheat)
+	
 	move->time = min(move->time, move->receivetime + sv.frametime);
+	
 
 	// read current angles
 	for (i = 0;i < 3;i++)
@@ -793,7 +801,7 @@ static void SV_ExecuteClientMoves(void)
 	if (ceil(max(sv_readmoves[sv_numreadmoves-1].receivetime - sv_readmoves[sv_numreadmoves-1].time, 0) * 1000.0) < sv_clmovement_minping.integer)
 		host_client->clmovement_disabletimeout = host.realtime + sv_clmovement_minping_disabletime.value / 1000.0;
 	// several conditions govern whether clientside movement prediction is allowed
-	if (sv_readmoves[sv_numreadmoves-1].sequence && sv_clmovement_enable.integer && sv_clmovement_inputtimeout.value > 0 && host_client->clmovement_disabletimeout <= host.realtime && (PRVM_serveredictfloat(host_client->edict, disableclientprediction) == -1 || (PRVM_serveredictfloat(host_client->edict, movetype) == MOVETYPE_WALK && (!PRVM_serveredictfloat(host_client->edict, disableclientprediction)))))
+	if (sv_readmoves[sv_numreadmoves-1].sequence && sv_clmovement_enable.integer && sv_clmovement_inputtimeout.value > 0 && host_client->clmovement_disabletimeout <= host.realtime && (PRVM_serveredictfloat(host_client->edict, disableclientprediction) == -1 || ((!PRVM_serveredictfloat(host_client->edict, disableclientprediction)))))
 	{
 		// process the moves in order and ignore old ones
 		// but always trust the latest move
@@ -811,7 +819,20 @@ static void SV_ExecuteClientMoves(void)
 				// this is a new move
 				move->time = bound(sv.time - 1, move->time, sv.time); // prevent slowhack/speedhack combos
 				move->time = max(move->time, host_client->cmd.time); // prevent backstepping of time
-				moveframetime = bound(0, move->time - host_client->cmd.time, min(0.1, sv_clmovement_inputtimeout.value));
+				if (sv.protocol == PROTOCOL_DOOMBRINGER2)
+				{
+					float rec_timediff;
+					rec_timediff = move->time - host_client->cmd.time;
+
+					moveframetime = move->frametime;
+					//basic protection against speed/slowmo hacking
+					if (rec_timediff > move->frametime * 1.333 || rec_timediff < move->frametime * 0.667)
+						moveframetime = rec_timediff;
+				}
+				else
+					moveframetime = move->time - host_client->cmd.time;
+				moveframetime = bound(0, moveframetime, min(0.1, sv_clmovement_inputtimeout.value));
+					
 
 				// discard (treat like lost) moves with too low distance from
 				// the previous one to prevent hacks using float inaccuracy
@@ -833,6 +854,7 @@ static void SV_ExecuteClientMoves(void)
 				//Con_Printf("movesequence = %i (%i lost), moveframetime = %f\n", move->sequence, move->sequence ? move->sequence - host_client->movesequence - 1 : 0, moveframetime);
 				host_client->cmd = *move;
 				host_client->movesequence = move->sequence;
+				//Con_Printf("Move time is: %f\n", moveframetime);
 
 				// if using prediction, we need to perform moves when packets are
 				// received, even if multiple occur in one frame

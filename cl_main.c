@@ -2831,6 +2831,7 @@ double CL_Frame (double time)
 
 		cl.oldtime = cl.time;
 		cl.time += clframetime;
+		//Con_Printf("%f\n", clframetime);
 
 		// update video
 		if (host_speeds.integer)

@@ -3927,6 +3927,7 @@ void CL_ParseServerMessage(void)
 						break;
 					case PROTOCOL_DARKPLACES7:
 					case PROTOCOL_DOOMBRINGER1:
+					case PROTOCOL_DOOMBRINGER2:
 					default:
 						// ProQuake does not support
 						// these protocols

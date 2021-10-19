@@ -1818,7 +1818,8 @@ void CL_SendMove(void)
 	// ridiculous value rejection (matches qw)
 	if (cl.cmd.msec > 250)
 		cl.cmd.msec = 100;
-	cl.cmd.frametime = cl.cmd.time - (cl.movecmd[1].time);//cl.cmd.msec * (1.0 / 1000.0);
+	//cl.cmd.frametime = cl.cmd.msec * (1.0 / 1000.0);
+	cl.cmd.frametime = cl.cmd.time - (cl.movecmd[1].time);
 
 	switch(cls.protocol)
 	{
@@ -1830,6 +1831,7 @@ void CL_SendMove(void)
 	case PROTOCOL_DARKPLACES7:
 		cl.cmd.predicted = cl_movement.integer != 0;
 		break;
+	case PROTOCOL_DOOMBRINGER2:
 	case PROTOCOL_DOOMBRINGER1:
 		cl.cmd.predicted = cl_movement.integer != 0;
 		break;
@@ -1866,6 +1868,7 @@ void CL_SendMove(void)
 		cl.cmd.crouch = (cl.cmd.buttons & 16) != 0;
 		break;
 	case PROTOCOL_DOOMBRINGER1:
+	case PROTOCOL_DOOMBRINGER2:
 		// FIXME: cl.cmd.buttons & 16 is +button5, Nexuiz/Xonotic specific
 		cl.cmd.crouch = (cl.cmd.buttons & 16) != 0;
 		break;
@@ -1891,6 +1894,7 @@ void CL_SendMove(void)
 		float maxtic = cl.movevars_ticrate / cl.movevars_timescale;
 		packettime = min(packettime, maxtic);
 	}
+
 
 	// do not send 0ms packets because they mess up physics
 	if(cl.cmd.msec == 0 && cl.time > cl.oldtime && (cls.protocol == PROTOCOL_QUAKEWORLD || cls.signon == SIGNONS))
@@ -2076,6 +2080,7 @@ void CL_SendMove(void)
 			}
 			break;
 		case PROTOCOL_DOOMBRINGER1:
+		case PROTOCOL_DOOMBRINGER2:
 			// set the maxusercmds variable to limit how many should be sent
 			maxusercmds = bound(1, cl_netrepeatinput.integer + 1, min(3, CL_MAX_USERCMDS));
 			// when movement prediction is off, there's not much point in repeating old input as it will just be ignored
@@ -2092,11 +2097,15 @@ void CL_SendMove(void)
 				// don't repeat any stale moves
 				if (cmd->sequence && cmd->sequence < cls.servermovesequence)
 					continue;
-				// 5/9 bytes
+				// 9 bytes
 				MSG_WriteByte (&buf, clc_move);
-				if (cls.protocol != PROTOCOL_DARKPLACES6)
-					MSG_WriteLong (&buf, cmd->predicted ? cmd->sequence : 0);
-				MSG_WriteFloat (&buf, cmd->time); // last server packet time
+				MSG_WriteLong (&buf, cmd->predicted ? cmd->sequence : 0);
+				MSG_WriteFloat(&buf, cmd->time); // last server packet time
+				if (cls.protocol == PROTOCOL_DOOMBRINGER2)
+				{
+					MSG_WriteFloat(&buf, cmd->frametime); // msecs untruncated
+				}
+				
 				// 6 bytes
 				for (i = 0;i < 3;i++)
 					MSG_WriteAngle16i (&buf, cmd->viewangles[i]);
