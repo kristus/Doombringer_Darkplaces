@@ -3051,13 +3051,6 @@ void SV_Physics_ClientMove(void)
 	prvm_edict_t *ent;
 	ent = host_client->edict;
 
-	// call player physics, this needs the proper frametime
-	PRVM_serverglobalfloat(frametime) = sv.frametime;
-	SV_PlayerPhysics();
-	
-	// perform movetype behaviour
-	// note: will always be MOVETYPE_WALK if disableclientprediction = 0
-	SV_Physics_ClientEntity_NoThink (ent);
 
 	// call standard client pre-think, with frametime = 0
 	PRVM_serverglobalfloat(time) = sv.time;
@@ -3066,6 +3059,15 @@ void SV_Physics_ClientMove(void)
 	PRVM_serverglobaledict(self) = PRVM_EDICT_TO_PROG(ent);
 	prog->ExecuteProgram(prog, PRVM_serverfunction(PlayerPreThink), "QC function PlayerPreThink is missing");
 	PRVM_serverglobalfloat(frametime) = sv.frametime;
+
+
+	// call player physics, this needs the proper frametime
+	PRVM_serverglobalfloat(frametime) = sv.frametime;
+	SV_PlayerPhysics();
+
+	// perform movetype behaviour
+	// note: will always be MOVETYPE_WALK if disableclientprediction = 0
+	SV_Physics_ClientEntity_NoThink (ent);
 
 	// make sure the velocity is sane (not a NaN)
 	SV_CheckVelocity(ent);
@@ -3279,19 +3281,24 @@ void SV_Physics (void)
 			if (!ent->priv.server->free)
 				SV_LinkEdict_TouchAreaGrid(ent); // force retouch even for stationary
 
+
 	if (sv_gameplayfix_consistentplayerprethink.integer)
 	{
 		// run physics on the client entities in 3 stages
 		for (i = 1, ent = PRVM_EDICT_NUM(i), host_client = svs.clients;i <= svs.maxclients;i++, ent = PRVM_NEXT_EDICT(ent), host_client++)
-			if (!ent->priv.server->free)
+			if (!ent->priv.server->free && host_client->clmovement_inputtimeout <= 0)
 				SV_Physics_ClientEntity_PreThink(ent);
 
-		for (i = 1, ent = PRVM_EDICT_NUM(i), host_client = svs.clients;i <= svs.maxclients;i++, ent = PRVM_NEXT_EDICT(ent), host_client++)
-			if (!ent->priv.server->free)
+		for (i = 1, ent = PRVM_EDICT_NUM(i), host_client = svs.clients; i <= svs.maxclients; i++, ent = PRVM_NEXT_EDICT(ent), host_client++)
+		{
+			if (!ent->priv.server->free && host_client->clmovement_inputtimeout <= 0)
 				SV_Physics_ClientEntity(ent);
+			else
+				SV_RunThink(ent);
+		}
 
 		for (i = 1, ent = PRVM_EDICT_NUM(i), host_client = svs.clients;i <= svs.maxclients;i++, ent = PRVM_NEXT_EDICT(ent), host_client++)
-			if (!ent->priv.server->free)
+			if (!ent->priv.server->free && host_client->clmovement_inputtimeout <= 0)
 				SV_Physics_ClientEntity_PostThink(ent);
 	}
 	else
@@ -3301,9 +3308,16 @@ void SV_Physics (void)
 		{
 			if (!ent->priv.server->free)
 			{
-				SV_Physics_ClientEntity_PreThink(ent);
-				SV_Physics_ClientEntity(ent);
-				SV_Physics_ClientEntity_PostThink(ent);
+				if (host_client->clmovement_inputtimeout <= 0)
+				{
+					SV_Physics_ClientEntity_PreThink(ent);
+					SV_Physics_ClientEntity(ent);
+					SV_Physics_ClientEntity_PostThink(ent);
+				}
+				else
+				{
+					SV_RunThink(ent);
+				}
 			}
 		}
 	}
