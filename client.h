@@ -617,6 +617,8 @@ typedef struct client_static_s
 	// protocol version of the server we're connected to
 	// (kept outside client_state_t because it's used between levels)
 	protocolversion_t protocol;
+	// Reki: protocol subversioning
+	unsigned int protocolversion;
 
 #define MAX_RCONS 16
 	int rcon_trying;

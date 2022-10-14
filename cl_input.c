@@ -464,7 +464,8 @@ static void CL_AdjustAngles (void)
 		cl.viewangles[PITCH] -= 360;
         // TODO: honor serverinfo minpitch and maxpitch values in PROTOCOL_QUAKEWORLD
         // TODO: honor proquake pq_fullpitch cvar when playing on proquake server (server stuffcmd's this to 0 usually)
-	cl.viewangles[PITCH] = bound(in_pitch_min.value, cl.viewangles[PITCH], in_pitch_max.value);
+	if (!(cls.protocol == PROTOCOL_DOOMBRINGER2 && cls.protocolversion >= PROTOCOL_DOOMBRINGER2_DELTAVIEW))
+		cl.viewangles[PITCH] = bound(in_pitch_min.value, cl.viewangles[PITCH], in_pitch_max.value);
 	cl.viewangles[ROLL] = bound(-180, cl.viewangles[ROLL], 180);
 }
 
@@ -519,7 +520,7 @@ void CL_Input (void)
 		cl.cmd.sidemove *= cl_movespeedkey.value;
 		cl.cmd.upmove *= cl_movespeedkey.value;
 	}
-
+	
 	// allow mice or other external controllers to add to the move
 	IN_Move ();
 
@@ -1919,6 +1920,16 @@ void CL_SendMove(void)
 	else
 		cl.lastpackettime = host.realtime;
 
+
+	if (quemove)
+	{
+		CL_VM_Input_Frame(&cl.cmd);
+
+		//if (quemove)
+		cl.movecmd[0] = cl.cmd;
+	}
+
+
 	buf.maxsize = sizeof(data);
 	buf.cursize = 0;
 	buf.data = data;
@@ -2120,9 +2131,19 @@ void CL_SendMove(void)
 				// 30 bytes
 				MSG_WriteShort (&buf, (short)(cmd->cursor_screen[0] * 32767.0f));
 				MSG_WriteShort (&buf, (short)(cmd->cursor_screen[1] * 32767.0f));
-				MSG_WriteFloat (&buf, cmd->cursor_start[0]);
-				MSG_WriteFloat (&buf, cmd->cursor_start[1]);
-				MSG_WriteFloat (&buf, cmd->cursor_start[2]);
+				if (cls.protocolversion >= PROTOCOL_DOOMBRINGER2_DELTAVIEW)
+				{
+					MSG_WriteFloat(&buf, cmd->viewangles[0]);
+					MSG_WriteFloat(&buf, cmd->viewangles[1]);
+					MSG_WriteFloat(&buf, cmd->viewangles[2]);
+					MSG_WriteFloat(&buf, 0);
+				}
+				else
+				{
+					MSG_WriteFloat(&buf, cmd->cursor_start[0]);
+					MSG_WriteFloat(&buf, cmd->cursor_start[1]);
+					MSG_WriteFloat(&buf, cmd->cursor_start[2]);
+				}
 				MSG_WriteFloat (&buf, cmd->cursor_impact[0]);
 				MSG_WriteFloat (&buf, cmd->cursor_impact[1]);
 				MSG_WriteFloat (&buf, cmd->cursor_impact[2]);
@@ -2183,8 +2204,8 @@ void CL_SendMove(void)
 		// because we now need a new slot for the next input
 		for (i = CL_MAX_USERCMDS - 1;i >= 1;i--)
 			cl.movecmd[i] = cl.movecmd[i-1];
-		cl.movecmd[0].msec = 0;
-		cl.movecmd[0].frametime = 0;
+		cl.movecmd[0].msec = 1;
+		cl.movecmd[0].frametime = 0.0001;
 	}
 
 	// clear button 'click' states

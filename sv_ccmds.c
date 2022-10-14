@@ -982,6 +982,22 @@ static void SV_Rate_BurstSize_f(cmd_state_t *cmd)
 	host_client->rate_burstsize = rate_burstsize;
 }
 
+static void SV_SetProtocolVersion_f(cmd_state_t *cmd)
+{
+	if (host_client->protocolversion)
+		return;
+
+	unsigned int proto_version = atoi(Cmd_Argv(cmd, 1));
+	if (proto_version > PROTOCOL_DOOMBRINGER2_CURRENT)
+		proto_version = PROTOCOL_DOOMBRINGER2_CURRENT;
+
+	MSG_WriteByte(&host_client->netconnection->message, svc_signonnum);
+	MSG_WriteByte(&host_client->netconnection->message, 101);
+	MSG_WriteLong(&host_client->netconnection->message, proto_version);
+
+	host_client->protocolversion = proto_version;
+}
+
 static void SV_Color_f(cmd_state_t *cmd)
 {
 	prvm_prog_t *prog = SVVM_prog;
@@ -1655,6 +1671,7 @@ void SV_InitOperatorCommands(void)
 	Cmd_AddCommand(CF_USERINFO, "pmodel", SV_PModel_f, "(Nehahra-only) change your player model choice");
 	Cmd_AddCommand(CF_USERINFO, "playermodel", SV_Playermodel_f, "change your player model");
 	Cmd_AddCommand(CF_USERINFO, "playerskin", SV_Playerskin_f, "change your player skin number");
+	Cmd_AddCommand(CF_USERINFO, "protocolver", SV_SetProtocolVersion_f, "set protocol version");
 
 	Cmd_AddCommand(CF_CHEAT | CF_SERVER_FROM_CLIENT, "ent_create", SV_Ent_Create_f, "Creates an entity at the specified coordinate, of the specified classname. If executed from a server, origin has to be specified manually.");
 	Cmd_AddCommand(CF_CHEAT | CF_SERVER_FROM_CLIENT, "ent_remove_all", SV_Ent_Remove_All_f, "Removes all entities of the specified classname");

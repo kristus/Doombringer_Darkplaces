@@ -466,6 +466,43 @@ CSQC_END
 	return r;
 }
 
+void CL_VM_Input_Frame(usercmd_t *cmd)
+{
+	prvm_prog_t *prog = CLVM_prog;
+
+	if (!cl.csqc_loaded)
+		return;
+
+	CSQC_BEGIN
+		if (PRVM_clientfunction(CSQC_Input_Frame))
+		{
+			PRVM_clientglobalfloat(time) = cl.time;
+			PRVM_clientglobaledict(self) = cl.csqc_server2csqcentitynumber[cl.playerentity];
+
+			PRVM_clientglobalfloat(input_timelength) = cmd->frametime;
+
+			VectorCopy(cmd->viewangles, PRVM_clientglobalvector(input_angles));
+			PRVM_clientglobalfloat(input_buttons) = cmd->buttons;
+			PRVM_clientglobalfloat(input_impulse) = cmd->impulse;
+
+			PRVM_clientglobalvector(input_movevalues)[0] = cmd->forwardmove;
+			PRVM_clientglobalvector(input_movevalues)[1] = cmd->sidemove;
+			PRVM_clientglobalvector(input_movevalues)[2] = cmd->upmove;
+
+			prog->ExecuteProgram(prog, PRVM_clientfunction(CSQC_Input_Frame), "QC function CSQC_Input_Frame is missing");
+
+			// take back modified values
+			cmd->forwardmove = PRVM_clientglobalvector(input_movevalues)[0];
+			cmd->sidemove = PRVM_clientglobalvector(input_movevalues)[1];
+			cmd->upmove = PRVM_clientglobalvector(input_movevalues)[2];
+
+			cmd->impulse = PRVM_clientglobalfloat(input_impulse);
+			cmd->buttons = PRVM_clientglobalfloat(input_buttons);
+			VectorCopy(PRVM_clientglobalvector(input_angles), cmd->viewangles);
+		}
+	CSQC_END
+}
+
 extern r_refdef_view_t csqc_original_r_refdef_view;
 extern r_refdef_view_t csqc_main_r_refdef_view;
 qbool CL_VM_UpdateView (double frametime)

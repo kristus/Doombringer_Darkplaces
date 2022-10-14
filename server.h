@@ -313,6 +313,9 @@ typedef struct client_s
 	// last sent move sequence
 	// if the move sequence changed, an empty entity frame is sent
 	unsigned int lastmovesequence;
+
+	// protocol subversioning
+	unsigned int protocolversion;
 } client_t;
 
 

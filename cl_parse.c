@@ -1569,6 +1569,9 @@ static void CL_SendPlayerInfo(void)
 	MSG_WriteByte (&cls.netcon->message, clc_stringcmd);
 	MSG_WriteString (&cls.netcon->message, va(vabuf, sizeof(vabuf), "name \"%s\"", cl_name.string));
 
+	MSG_WriteByte(&cls.netcon->message, clc_stringcmd);
+	MSG_WriteString(&cls.netcon->message, va(vabuf, sizeof(vabuf), "protocolver \"%i\"", PROTOCOL_DOOMBRINGER2_CURRENT));
+
 	MSG_WriteByte (&cls.netcon->message, clc_stringcmd);
 	MSG_WriteString (&cls.netcon->message, va(vabuf, sizeof(vabuf), "color %i %i", cl_topcolor.integer, cl_bottomcolor.integer));
 
@@ -1614,6 +1617,7 @@ static void CL_SignonReply (void)
 			// send player info before we begin downloads
 			// (so that the server can see the player name while downloading)
 			CL_SendPlayerInfo();
+			cls.protocolversion = 0;
 
 			// execute cl_begindownloads next frame
 			// (after any commands added by svc_stufftext have been executed)
@@ -4116,6 +4120,18 @@ void CL_ParseServerMessage(void)
 
 			case svc_signonnum:
 				i = MSG_ReadByte(&cl_message);
+
+				// Reki: Highjack this a little for protocol subversioning
+				if (i > 100)
+				{
+					if (i == 101)
+					{
+						cls.protocolversion = MSG_ReadLong(&cl_message);
+						Con_Printf("Server protocol subversion is %lu\n", cls.protocolversion);
+					}
+					break;
+				}
+
 				// LadyHavoc: it's rude to kick off the client if they missed the
 				// reconnect somehow, so allow signon 1 even if at signon 1
 				if (i <= cls.signon && i != 1)

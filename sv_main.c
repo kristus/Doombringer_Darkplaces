@@ -900,6 +900,13 @@ void SV_SendServerinfo (client_t *client)
 	MSG_WriteByte (&client->netconnection->message, svc_signonnum);
 	MSG_WriteByte (&client->netconnection->message, 1);
 
+	if (client->protocolversion) // if we already decided upon a protocol version
+	{
+		MSG_WriteByte(&client->netconnection->message, svc_signonnum);
+		MSG_WriteByte(&client->netconnection->message, 101);
+		MSG_WriteLong(&client->netconnection->message, client->protocolversion);
+	}
+
 	client->prespawned = false;		// need prespawn, spawn, etc
 	client->spawned = false;		// need prespawn, spawn, etc
 	client->begun = false;			// need prespawn, spawn, etc

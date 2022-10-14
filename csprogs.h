@@ -91,6 +91,7 @@ void CL_VM_ShutDown(void);
 void CL_VM_UpdateIntermissionState(int intermission);
 void CL_VM_UpdateShowingScoresState(int showingscores);
 qbool CL_VM_InputEvent(int eventtype, float x, float y);
+void CL_VM_Input_Frame(usercmd_t *cmd);
 qbool CL_VM_ConsoleCommand(const char *text);
 void CL_VM_UpdateDmgGlobals(int dmg_take, int dmg_save, vec3_t dmg_origin);
 void CL_VM_UpdateIntermissionState(int intermission);

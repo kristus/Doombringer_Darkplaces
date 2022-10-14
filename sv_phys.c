@@ -3052,6 +3052,15 @@ void SV_Physics_ClientMove(void)
 	ent = host_client->edict;
 
 
+	PRVM_serverglobalfloat(input_timelength) = host_client->cmd.frametime;
+	VectorCopy(host_client->cmd.viewangles, PRVM_clientglobalvector(input_angles));
+	PRVM_serverglobalfloat(input_buttons) = host_client->cmd.buttons;
+	PRVM_serverglobalfloat(input_impulse) = host_client->cmd.impulse;
+	PRVM_serverglobalvector(input_movevalues)[0] = host_client->cmd.forwardmove;
+	PRVM_serverglobalvector(input_movevalues)[1] = host_client->cmd.sidemove;
+	PRVM_serverglobalvector(input_movevalues)[2] = host_client->cmd.upmove;
+
+
 	// call standard client pre-think, with frametime = 0
 	PRVM_serverglobalfloat(time) = sv.time;
 	PRVM_serverglobalfloat(frametime) = 0;
@@ -3097,6 +3106,14 @@ static void SV_Physics_ClientEntity_PreThink(prvm_edict_t *ent)
 	// don't do physics on disconnected clients, FrikBot relies on this
 	if (!host_client->begun)
 		return;
+
+	PRVM_serverglobalfloat(input_timelength) = host_client->cmd.frametime;
+	VectorCopy(host_client->cmd.viewangles, PRVM_clientglobalvector(input_angles));
+	PRVM_serverglobalfloat(input_buttons) = host_client->cmd.buttons;
+	PRVM_serverglobalfloat(input_impulse) = host_client->cmd.impulse;
+	PRVM_serverglobalvector(input_movevalues)[0] = host_client->cmd.forwardmove;
+	PRVM_serverglobalvector(input_movevalues)[1] = host_client->cmd.sidemove;
+	PRVM_serverglobalvector(input_movevalues)[2] = host_client->cmd.upmove;
 
 	// make sure the velocity is sane (not a NaN)
 	SV_CheckVelocity(ent);

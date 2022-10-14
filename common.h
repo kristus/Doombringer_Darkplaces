@@ -148,6 +148,10 @@ typedef enum protocolversion_e
 }
 protocolversion_t;
 
+#define PROTOCOL_DOOMBRINGER2_BASE			0
+#define PROTOCOL_DOOMBRINGER2_DELTAVIEW		1
+#define PROTOCOL_DOOMBRINGER2_CURRENT		1
+
 /*! \name Message IO functions.
  * Handles byte ordering and avoids alignment errors
  * @{
