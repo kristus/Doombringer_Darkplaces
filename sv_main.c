@@ -1797,6 +1797,7 @@ void SV_SpawnServer (const char *map)
 		Sys_MakeProcessNice();
 	else
 	{
+		strlcpy(cl.worldbasename, map, sizeof(cl.worldbasename));
 		SCR_BeginLoadingPlaque(false);
 		S_StopAllSounds();
 	}

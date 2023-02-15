@@ -5305,6 +5305,9 @@ static void MP_Draw (void)
 
 	R_SelectScene( RST_MENU );
 
+	// Reki: set any globals we have
+	PRVM_menuglobalstring(mapname) = PRVM_SetEngineString(prog, cl.worldbasename);
+
 	// reset the temp entities each frame
 	r_refdef.scene.numtempentities = 0;
 

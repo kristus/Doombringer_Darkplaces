@@ -716,13 +716,28 @@ SCR_BeginLoadingPlaque
 */
 void SCR_BeginLoadingPlaque (qbool startup)
 {
+	prvm_prog_t *prog = MVM_prog;
+
 	scr_loading = true;
 	SCR_UpdateLoadingScreen(false, startup);
+
+	if (prog && PRVM_menufunction(m_startload))
+	{
+		PRVM_G_FLOAT(OFS_PARM0) = (float)startup;
+		prog->ExecuteProgram(prog, PRVM_menufunction(m_startload), "");
+	}
 }
 
 void SCR_EndLoadingPlaque(void)
 {
+	prvm_prog_t *prog = MVM_prog;
+
 	scr_loading = false;
+
+	if (prog && PRVM_menufunction(m_endload))
+	{
+		prog->ExecuteProgram(prog, PRVM_menufunction(m_endload), "");
+	}
 }
 
 //=============================================================================
@@ -2040,9 +2055,18 @@ static void SCR_DrawLoadingScreen_SharedSetup (qbool clear)
 static void SCR_DrawLoadingScreen (void)
 {
 	prvm_prog_t *prog = MVM_prog;
-
-	if (PRVM_menufunction(m_drawloading)) // use MenuQC entrypoint if it exists
+	if (prog && PRVM_menufunction(m_drawloading)) // use MenuQC entrypoint if it exists
 	{
+		PRVM_menuglobalstring(mapname) = PRVM_SetEngineString(prog, cl.worldbasename);
+
+		if (loadingscreenstack)
+		{
+			PRVM_menuglobalfloat(loading_amount_min) = loadingscreenstack->absolute_loading_amount_min;
+			PRVM_menuglobalfloat(loading_amount_len) = loadingscreenstack->absolute_loading_amount_len;
+			PRVM_menuglobalfloat(loading_amount) = loadingscreenstack->relative_completion;
+			PRVM_menuglobalstring(loading_message) = PRVM_SetEngineString(prog, loadingscreenstack->msg);
+		}
+
 		PRVM_G_FLOAT(OFS_PARM0) = vid.width;
 		PRVM_G_FLOAT(OFS_PARM1) = vid.height;
 		PRVM_G_FLOAT(OFS_PARM2) = 0;
