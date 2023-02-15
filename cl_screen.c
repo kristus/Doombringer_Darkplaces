@@ -2039,23 +2039,36 @@ static void SCR_DrawLoadingScreen_SharedSetup (qbool clear)
 
 static void SCR_DrawLoadingScreen (void)
 {
-	// we only need to draw the image if it isn't already there
-	GL_BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	GL_DepthRange(0, 1);
-	GL_PolygonOffset(0, 0);
-	GL_DepthTest(false);
-//	R_Mesh_ResetTextureState();
-	GL_Color(1,1,1,1);
-	if(loadingscreentexture)
+	prvm_prog_t *prog = MVM_prog;
+
+	if (PRVM_menufunction(m_drawloading)) // use MenuQC entrypoint if it exists
 	{
-		R_Mesh_PrepareVertices_Generic_Arrays(4, loadingscreentexture_vertex3f, NULL, loadingscreentexture_texcoord2f);
-		R_SetupShader_Generic(loadingscreentexture, false, true, true);
-		R_Mesh_Draw(0, 4, 0, 2, polygonelement3i, NULL, 0, polygonelement3s, NULL, 0);
+		PRVM_G_FLOAT(OFS_PARM0) = vid.width;
+		PRVM_G_FLOAT(OFS_PARM1) = vid.height;
+		PRVM_G_FLOAT(OFS_PARM2) = 0;
+		PRVM_G_FLOAT(OFS_PARM3) = 1;
+		prog->ExecuteProgram(prog, PRVM_menufunction(m_drawloading), "");
 	}
-	R_Mesh_PrepareVertices_Generic_Arrays(4, loadingscreenpic_vertex3f, NULL, loadingscreenpic_texcoord2f);
-	R_SetupShader_Generic(Draw_GetPicTexture(loadingscreenpic), true, true, false);
-	R_Mesh_Draw(0, 4, 0, 2, polygonelement3i, NULL, 0, polygonelement3s, NULL, 0);
-	SCR_DrawLoadingStack();
+	else // fall back to default engine behavior
+	{
+		// we only need to draw the image if it isn't already there
+		GL_BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		GL_DepthRange(0, 1);
+		GL_PolygonOffset(0, 0);
+		GL_DepthTest(false);
+		//	R_Mesh_ResetTextureState();
+		GL_Color(1, 1, 1, 1);
+		if (loadingscreentexture)
+		{
+			R_Mesh_PrepareVertices_Generic_Arrays(4, loadingscreentexture_vertex3f, NULL, loadingscreentexture_texcoord2f);
+			R_SetupShader_Generic(loadingscreentexture, false, true, true);
+			R_Mesh_Draw(0, 4, 0, 2, polygonelement3i, NULL, 0, polygonelement3s, NULL, 0);
+		}
+		R_Mesh_PrepareVertices_Generic_Arrays(4, loadingscreenpic_vertex3f, NULL, loadingscreenpic_texcoord2f);
+		R_SetupShader_Generic(Draw_GetPicTexture(loadingscreenpic), true, true, false);
+		R_Mesh_Draw(0, 4, 0, 2, polygonelement3i, NULL, 0, polygonelement3s, NULL, 0);
+		SCR_DrawLoadingStack();
+	}
 }
 
 static double loadingscreen_lastupdate;
