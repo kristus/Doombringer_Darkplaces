@@ -1813,6 +1813,7 @@ void CL_SendMove(void)
 
 	// set viewangles
 	VectorCopy(cl.viewangles, cl.cmd.viewangles);
+	VectorClear(cl.cmd.aimangles);
 
 	msecdelta = (int)(floor(cl.cmd.time * 1000) - floor(cl.movecmd[1].time * 1000));
 	cl.cmd.msec = (unsigned char)bound(0, msecdelta, 255);
@@ -2133,10 +2134,20 @@ void CL_SendMove(void)
 				MSG_WriteShort (&buf, (short)(cmd->cursor_screen[1] * 32767.0f));
 				if (cls.protocolversion >= PROTOCOL_DOOMBRINGER2_DELTAVIEW)
 				{
-					MSG_WriteFloat(&buf, cmd->viewangles[0]);
-					MSG_WriteFloat(&buf, cmd->viewangles[1]);
-					MSG_WriteFloat(&buf, cmd->viewangles[2]);
-					MSG_WriteFloat(&buf, 0);
+					if (cls.protocolversion >= PROTOCOL_DOOMBRINGER2_AIMANGLE)
+					{
+						MSG_WriteFloat(&buf, cmd->viewangles[0]);
+						MSG_WriteFloat(&buf, cmd->viewangles[1]);
+						MSG_WriteFloat(&buf, cmd->aimangles[0]);
+						MSG_WriteFloat(&buf, cmd->aimangles[1]);
+					}
+					else
+					{
+						MSG_WriteFloat(&buf, cmd->viewangles[0]);
+						MSG_WriteFloat(&buf, cmd->viewangles[1]);
+						MSG_WriteFloat(&buf, cmd->viewangles[2]);
+						MSG_WriteFloat(&buf, 0);
+					}
 				}
 				else
 				{

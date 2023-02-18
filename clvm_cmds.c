@@ -2238,6 +2238,7 @@ static void VM_CL_getinputstate (prvm_prog_t *prog)
 		if (cl.movecmd[i].sequence == frame)
 		{
 			VectorCopy(cl.movecmd[i].viewangles, PRVM_clientglobalvector(input_angles));
+			VectorCopy(cl.movecmd[i].aimangles, PRVM_clientglobalvector(input_aimangles));
 			PRVM_clientglobalfloat(input_buttons) = cl.movecmd[i].buttons; // FIXME: this should not be directly exposed to csqc (translation layer needed?)
 			PRVM_clientglobalfloat(input_impulse) = cl.movecmd[i].impulse;
 			PRVM_clientglobalvector(input_movevalues)[0] = cl.movecmd[i].forwardmove;
@@ -2308,6 +2309,7 @@ static void VM_CL_runplayerphysics (prvm_prog_t *prog)
 	}
 
 	VectorCopy(PRVM_clientglobalvector(input_angles), s.cmd.viewangles);
+	VectorCopy(PRVM_clientglobalvector(input_aimangles), s.cmd.aimangles);
 	s.cmd.forwardmove = PRVM_clientglobalvector(input_movevalues)[0];
 	s.cmd.sidemove = PRVM_clientglobalvector(input_movevalues)[1];
 	s.cmd.upmove = PRVM_clientglobalvector(input_movevalues)[2];

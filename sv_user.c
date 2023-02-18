@@ -714,10 +714,20 @@ static void SV_ReadClientMove (void)
 		move->cursor_screen[1] = MSG_ReadShort(&sv_message) * (1.0f / 32767.0f);
 		if (sv.protocol == PROTOCOL_DOOMBRINGER2 && host_client->protocolversion >= PROTOCOL_DOOMBRINGER2_DELTAVIEW)
 		{
-			move->viewangles[0] = MSG_ReadFloat(&sv_message);
-			move->viewangles[1] = MSG_ReadFloat(&sv_message);
-			move->viewangles[2] = MSG_ReadFloat(&sv_message);
-			MSG_ReadFloat(&sv_message);
+			if (cls.protocolversion >= PROTOCOL_DOOMBRINGER2_AIMANGLE)
+			{
+				move->viewangles[0] = MSG_ReadFloat(&sv_message);
+				move->viewangles[1] = MSG_ReadFloat(&sv_message);
+				move->aimangles[0] = MSG_ReadFloat(&sv_message);
+				move->aimangles[1] = MSG_ReadFloat(&sv_message);
+			}
+			else
+			{
+				move->viewangles[0] = MSG_ReadFloat(&sv_message);
+				move->viewangles[1] = MSG_ReadFloat(&sv_message);
+				move->viewangles[2] = MSG_ReadFloat(&sv_message);
+				MSG_ReadFloat(&sv_message);
+			}
 		}
 		else
 		{

@@ -3054,6 +3054,7 @@ void SV_Physics_ClientMove(void)
 
 	PRVM_serverglobalfloat(input_timelength) = host_client->cmd.frametime;
 	VectorCopy(host_client->cmd.viewangles, PRVM_clientglobalvector(input_angles));
+	VectorCopy(host_client->cmd.aimangles, PRVM_clientglobalvector(input_aimangles));
 	PRVM_serverglobalfloat(input_buttons) = host_client->cmd.buttons;
 	PRVM_serverglobalfloat(input_impulse) = host_client->cmd.impulse;
 	PRVM_serverglobalvector(input_movevalues)[0] = host_client->cmd.forwardmove;
@@ -3109,6 +3110,7 @@ static void SV_Physics_ClientEntity_PreThink(prvm_edict_t *ent)
 
 	PRVM_serverglobalfloat(input_timelength) = host_client->cmd.frametime;
 	VectorCopy(host_client->cmd.viewangles, PRVM_clientglobalvector(input_angles));
+	VectorCopy(host_client->cmd.aimangles, PRVM_clientglobalvector(input_aimangles));
 	PRVM_serverglobalfloat(input_buttons) = host_client->cmd.buttons;
 	PRVM_serverglobalfloat(input_impulse) = host_client->cmd.impulse;
 	PRVM_serverglobalvector(input_movevalues)[0] = host_client->cmd.forwardmove;

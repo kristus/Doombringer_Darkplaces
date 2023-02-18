@@ -233,6 +233,7 @@ static void CSQC_SetGlobals (double frametime)
 		PRVM_clientglobalfloat(servercommandframe) = cls.servermovesequence;
 		PRVM_clientglobalfloat(clientcommandframe) = cl.movecmd[0].sequence;
 		VectorCopy(cl.viewangles, PRVM_clientglobalvector(input_angles));
+		VectorCopy(cl.viewangles, PRVM_clientglobalvector(input_aimangles));
 		// // FIXME: this actually belongs into getinputstate().. [12/17/2007 Black]
 		PRVM_clientglobalfloat(input_buttons) = cl.movecmd[0].buttons;
 		PRVM_clientglobalfloat(input_impulse) = cl.movecmd[0].impulse;
@@ -482,6 +483,7 @@ void CL_VM_Input_Frame(usercmd_t *cmd)
 			PRVM_clientglobalfloat(input_timelength) = cmd->frametime;
 
 			VectorCopy(cmd->viewangles, PRVM_clientglobalvector(input_angles));
+			VectorCopy(cmd->aimangles, PRVM_clientglobalvector(input_aimangles));
 			PRVM_clientglobalfloat(input_buttons) = cmd->buttons;
 			PRVM_clientglobalfloat(input_impulse) = cmd->impulse;
 
@@ -499,6 +501,7 @@ void CL_VM_Input_Frame(usercmd_t *cmd)
 			cmd->impulse = PRVM_clientglobalfloat(input_impulse);
 			cmd->buttons = PRVM_clientglobalfloat(input_buttons);
 			VectorCopy(PRVM_clientglobalvector(input_angles), cmd->viewangles);
+			VectorCopy(PRVM_clientglobalvector(input_aimangles), cmd->aimangles);
 		}
 	CSQC_END
 }

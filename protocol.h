@@ -374,6 +374,7 @@ void Protocol_Names(char *buffer, size_t buffersize);
 typedef struct usercmd_s
 {
 	vec3_t	viewangles;
+	vec3_t	aimangles;
 
 // intended velocities
 	float	forwardmove;

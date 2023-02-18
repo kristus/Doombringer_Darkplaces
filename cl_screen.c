@@ -2064,7 +2064,7 @@ static void SCR_DrawLoadingScreen (void)
 			PRVM_menuglobalfloat(loading_amount_min) = loadingscreenstack->absolute_loading_amount_min;
 			PRVM_menuglobalfloat(loading_amount_len) = loadingscreenstack->absolute_loading_amount_len;
 			PRVM_menuglobalfloat(loading_amount) = loadingscreenstack->relative_completion;
-			PRVM_menuglobalstring(loading_message) = PRVM_SetEngineString(prog, loadingscreenstack->msg);
+			PRVM_menuglobalstring(loading_message) = PRVM_SetTempString(prog, loadingscreenstack->msg);
 		}
 
 		PRVM_G_FLOAT(OFS_PARM0) = vid.width;
