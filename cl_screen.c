@@ -716,6 +716,7 @@ SCR_BeginLoadingPlaque
 */
 void SCR_BeginLoadingPlaque (qbool startup)
 {
+#ifdef CONFIG_MENU
 	prvm_prog_t *prog = MVM_prog;
 
 	scr_loading = true;
@@ -726,10 +727,12 @@ void SCR_BeginLoadingPlaque (qbool startup)
 		PRVM_G_FLOAT(OFS_PARM0) = (float)startup;
 		prog->ExecuteProgram(prog, PRVM_menufunction(m_startload), "");
 	}
+#endif
 }
 
 void SCR_EndLoadingPlaque(void)
 {
+#ifdef CONFIG_MENU
 	prvm_prog_t *prog = MVM_prog;
 
 	scr_loading = false;
@@ -738,6 +741,7 @@ void SCR_EndLoadingPlaque(void)
 	{
 		prog->ExecuteProgram(prog, PRVM_menufunction(m_endload), "");
 	}
+#endif
 }
 
 //=============================================================================
@@ -2054,6 +2058,7 @@ static void SCR_DrawLoadingScreen_SharedSetup (qbool clear)
 
 static void SCR_DrawLoadingScreen (void)
 {
+#ifdef CONFIG_MENU
 	prvm_prog_t *prog = MVM_prog;
 	if (prog && PRVM_menufunction(m_drawloading)) // use MenuQC entrypoint if it exists
 	{
@@ -2074,6 +2079,7 @@ static void SCR_DrawLoadingScreen (void)
 		prog->ExecuteProgram(prog, PRVM_menufunction(m_drawloading), "");
 	}
 	else // fall back to default engine behavior
+#endif
 	{
 		// we only need to draw the image if it isn't already there
 		GL_BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
