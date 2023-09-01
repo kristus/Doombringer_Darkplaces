@@ -2674,7 +2674,7 @@ static void CL_UpdateEntityShading_Entity(entity_render_t *ent)
 			ent->render_modellight_forced = true;
 			ent->render_rtlight_disabled = true;
 		}
-		else if (((ent->model && !ent->model->lit) || (ent->model == r_refdef.scene.worldmodel ? mod_q3bsp_lightgrid_world_surfaces.integer : mod_q3bsp_lightgrid_bsp_surfaces.integer))
+		else if (((ent->model && ((!ent->model->lit) || (ent->flags & RENDER_DYNAMICMODELLIGHT))) || (ent->model == r_refdef.scene.worldmodel ? mod_q3bsp_lightgrid_world_surfaces.integer : mod_q3bsp_lightgrid_bsp_surfaces.integer))
 			&& r_refdef.scene.worldmodel && r_refdef.scene.worldmodel->lit && r_refdef.scene.worldmodel->brushq3.lightgridtexture && mod_q3bsp_lightgrid_texture.integer)
 		{
 			ent->render_lightgrid = true;
