@@ -151,7 +151,8 @@ protocolversion_t;
 #define PROTOCOL_DOOMBRINGER2_BASE			0
 #define PROTOCOL_DOOMBRINGER2_DELTAVIEW		1
 #define PROTOCOL_DOOMBRINGER2_AIMANGLE		2
-#define PROTOCOL_DOOMBRINGER2_CURRENT		2
+#define PROTOCOL_DOOMBRINGER2_SOUNDFLAGS	3
+#define PROTOCOL_DOOMBRINGER2_CURRENT		3
 
 /*! \name Message IO functions.
  * Handles byte ordering and avoids alignment errors

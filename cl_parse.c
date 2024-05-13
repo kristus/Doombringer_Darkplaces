@@ -272,6 +272,14 @@ static void CL_ParseStartSoundPacket(int largesoundindex)
 
 	MSG_ReadVector(&cl_message, pos, cls.protocol);
 
+	if (cls.protocol == PROTOCOL_DOOMBRINGER2)
+	{
+		if (cls.protocolversion >= PROTOCOL_DOOMBRINGER2_SOUNDFLAGS)
+		{
+			fflags = MSG_ReadShort(&cl_message);
+		}
+	}
+
 	if (sound_num < 0 || sound_num >= MAX_SOUNDS)
 	{
 		Con_Printf("CL_ParseStartSoundPacket: sound_num (%i) >= MAX_SOUNDS (%i)\n", sound_num, MAX_SOUNDS);

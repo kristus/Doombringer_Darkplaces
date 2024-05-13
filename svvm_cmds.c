@@ -583,7 +583,8 @@ static void VM_SV_sound(prvm_prog_t *prog)
 	else
 	{
 		// LadyHavoc: we only let the qc set certain flags, others are off-limits
-		flags = (int)PRVM_G_FLOAT(OFS_PARM6) & (CHANNELFLAG_RELIABLE | CHANNELFLAG_FORCELOOP | CHANNELFLAG_PAUSED | CHANNELFLAG_FULLVOLUME | CHANNELFLAG_BGMVOLUME | CHANNELFLAG_TRAPEZOID);
+		flags = (int)PRVM_G_FLOAT(OFS_PARM6) & (0xFFFF);//(CHANNELFLAG_RELIABLE | CHANNELFLAG_FORCELOOP | CHANNELFLAG_PAUSED | CHANNELFLAG_FULLVOLUME | CHANNELFLAG_BGMVOLUME | CHANNELFLAG_TRAPEZOID);
+		flags &= ~CHANNELFLAG_LOCALSOUND;
 	}
 
 	if (nvolume < 0 || nvolume > 255)
@@ -606,7 +607,7 @@ static void VM_SV_sound(prvm_prog_t *prog)
 		return;
 	}
 
-	SV_StartSound (entity, channel, sample, nvolume, attenuation, flags & CHANNELFLAG_RELIABLE, pitchchange);
+	SV_StartSound (entity, channel, sample, nvolume, attenuation, flags, pitchchange);
 }
 
 /*

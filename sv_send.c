@@ -224,13 +224,13 @@ Larger attenuations will drop off.  (max 4 attenuation)
 
 ==================
 */
-void SV_StartSound (prvm_edict_t *entity, int channel, const char *sample, int nvolume, float attenuation, qbool reliable, float speed)
+void SV_StartSound (prvm_edict_t *entity, int channel, const char *sample, int nvolume, float attenuation, int flags, float speed)
 {
 	prvm_prog_t *prog = SVVM_prog;
 	sizebuf_t *dest;
 	int sound_num, field_mask, i, ent, speed4000;
 
-	dest = (reliable ? &sv.reliable_datagram : &sv.datagram);
+	dest = ((flags & CHANNELFLAG_RELIABLE) ? &sv.reliable_datagram : &sv.datagram);
 
 	if (nvolume < 0 || nvolume > 255)
 	{
@@ -295,11 +295,16 @@ void SV_StartSound (prvm_edict_t *entity, int channel, const char *sample, int n
 		MSG_WriteShort (dest, sound_num);
 	else
 		MSG_WriteByte (dest, sound_num);
+
 	for (i = 0;i < 3;i++)
 		MSG_WriteCoord (dest, PRVM_serveredictvector(entity, origin)[i]+0.5*(PRVM_serveredictvector(entity, mins)[i]+PRVM_serveredictvector(entity, maxs)[i]), sv.protocol);
 
+	// Reki (May 12 2024): Channel Flags
+	if (sv.protocol == PROTOCOL_DOOMBRINGER2)
+		MSG_WriteShort(dest, flags);
+
 	// TODO do we have to do anything here when dest is &sv.reliable_datagram?
-	if(!reliable)
+	if(!(flags & CHANNELFLAG_RELIABLE))
 		SV_FlushBroadcastMessages();
 }
 
@@ -368,6 +373,8 @@ void SV_StartPointSound (vec3_t origin, const char *sample, int nvolume, float a
 		MSG_WriteByte (&sv.datagram, sound_num);
 	for (i = 0;i < 3;i++)
 		MSG_WriteCoord (&sv.datagram, origin[i], sv.protocol);
+	if (sv.protocol == PROTOCOL_DOOMBRINGER2)
+		MSG_WriteShort(&sv.datagram, 0x0000);
 	SV_FlushBroadcastMessages();
 }
 

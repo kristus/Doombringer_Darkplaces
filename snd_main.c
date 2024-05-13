@@ -1398,9 +1398,10 @@ static void SND_Spatialize_WithSfx(channel_t *ch, qbool isstatic, sfx_t *sfx)
 		VectorSubtract(listener_origin, ch->origin, source_vec);
 		dist = VectorLength(source_vec);
 		
-		if (ch->flags & CHANNELFLAG_TRAPEZOID)
+		if (ch->flags & CHANNELFLAG_TRAPEZOID && 0)
 		{
-			if (dist < ch->distfade * 0.4)
+			const float dist_part = 0.4;
+			if (dist < ch->distfade * dist_part)
 			{
 				f = 1.0;
 			}
@@ -1409,11 +1410,13 @@ static void SND_Spatialize_WithSfx(channel_t *ch, qbool isstatic, sfx_t *sfx)
 				//f = dist * (ch->distfade / 0.6);
 				//f = 1.0 - f;
 				
-				f = 1 - ((1 - f) / 0.6);
+				f = 1 - ((1 - f) / (1 - dist_part));
 
+				/*
 				f = ((snd_attenuation_exponent.value == 0) ? 1.0 : pow(1.0 - min(1.0, f), (double)snd_attenuation_exponent.value))
 					*
 					((snd_attenuation_decibel.value == 0) ? 1.0 : pow(0.1, 0.1 * snd_attenuation_decibel.value * f));
+				*/
 			}
 		}
 		else
